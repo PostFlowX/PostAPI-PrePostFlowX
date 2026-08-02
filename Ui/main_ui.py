@@ -6,9 +6,11 @@ from re import A
 import tkinter as tk
 from tkinter import N, ttk
 from tkinter import filedialog
+from typing import Text
+from matplotlib.offsetbox import PaddedBox
 from tkcalendar import DateEntry
 from datetime import datetime, timedelta
-from turtle import left, width
+#from turtle import fill, left, right, width
 
 from numpy import pad
 from tkinterweb import HtmlFrame
@@ -265,7 +267,7 @@ class PostAPIApp(tk.Tk):
     def show_instagram(self):
         self.clear_content()
 
-        # Main-Frame for Instagram
+        # Main-Frame for Instagram (left)
         frame_insert = tk.Frame(self.content_frame)
         frame_insert.pack(side="left", fill="both", expand=True, padx=20, pady=10)
 
@@ -307,13 +309,13 @@ class PostAPIApp(tk.Tk):
         tk.Label(frame_accounts, text="Accounts", font=("Arial", 14)).pack()
 
         # Table for Accounts
-        self.account_tree = ttk.Treeview(frame_accounts, columns=("Username", "IG_ID", "Status", "expdate","Token"), show="headings", height=10)
-        self.account_tree.heading("Username", text="Username")
-        self.account_tree.heading("IG_ID", text="Instagram ID")
-        self.account_tree.heading("Status", text="Status")
-        self.account_tree.heading("expdate", text="Expires in")
-        self.account_tree.heading("Token", text="Access Token")
-        self.account_tree.pack(pady=5)
+        self.account_tree_inst = ttk.Treeview(frame_accounts, columns=("Username", "IG_ID", "Status", "expdate","Token"), show="headings", height=10)
+        self.account_tree_inst.heading("Username", text="Username")
+        self.account_tree_inst.heading("IG_ID", text="Instagram ID")
+        self.account_tree_inst.heading("Status", text="Status")
+        self.account_tree_inst.heading("expdate", text="Expires in")
+        self.account_tree_inst.heading("Token", text="Access Token")
+        self.account_tree_inst.pack(pady=5)
 
         # Buttons for Account-management
         btn_frame = tk.Frame(frame_accounts)
@@ -344,8 +346,30 @@ class PostAPIApp(tk.Tk):
 
     def show_tiktok(self):
         self.clear_content()
-        tk.Label(self.content_frame, text="TikTok (WIP)", font=("Arial", 18)).pack(pady=10)
-
+        
+        #Main Frame (left)
+        frame_insert = tk.Frame(self.content_frame)
+        frame_insert.pack(side="left", fill="both", expand=True, padx=20, pady=10)
+        
+        tk.Label(frame_insert, text="Tiktok Post", font=("Arial", 18)).pack(pady=10)
+        
+        #All the selections
+        
+        #Main Frame(right)
+        frame_accounts = tk.Frame(self.content_frame)
+        frame_accounts.pack(side="right", fill="y", padx=20, pady=10)
+        
+        tk.Label(frame_accounts, text="Accounts", font=("Arial", 14)).pack()
+        
+        #Another account tree
+        self.account_tree_tt = ttk.Treeview(frame_accounts, columns=("Username", "ID?", "Status", "expdate", "Token"), show="headings", height=10)
+        self.account_tree_tt.heading("Username", text="Username")
+        self.account_tree_tt.heading("ID?", text="ID?")
+        self.account_tree_tt.heading("Status", text="Status")
+        self.account_tree_tt.heading("expdate", text="Expires in")
+        self.account_tree_tt.heading("Token", text="Access Token")
+        self.account_tree_tt.pack(pady=5)
+        
         #Debug Message
         logging.info("UI: Opened TikTok Page (WIP)")
 
@@ -530,12 +554,12 @@ class PostAPIApp(tk.Tk):
                 acc["Status"] = "Not Checked"
         
         #Clear Table
-        self.account_tree.delete(*self.account_tree.get_children())
+        self.account_tree_inst.delete(*self.account_tree_inst.get_children())
         logging.info("UI: Cleared Account Table")
         
         #Insert loaded accounts from Json file
         for acc in self.accounts:
-            self.account_tree.insert(
+            self.account_tree_inst.insert(
                 "",
                 "end",
                 values=(
@@ -553,19 +577,19 @@ class PostAPIApp(tk.Tk):
         #Now lets run the token checker
         logging.info("UI: Starting TokenChecker for loaded accounts")
         #callback func
-        def update_status_in_tree(idx, is_valid):
+        def update_status_in_tree_inst(idx, is_valid):
             def update():
                 try:
-                    children = self.account_tree.get_children()
+                    children = self.account_tree_inst.get_children()
                     if idx < len(children):
                         item_id = children[idx]
                         symbol = "✔" if is_valid else "✖"
-                        self.account_tree.set(item_id, "Status", symbol) #directly into treeview
+                        self.account_tree_inst.set(item_id, "Status", symbol) #directly into treeview
                         self.accounts[idx]["Status"] = symbol #also update in list
                 except Exception as e:
                     logging.error(f"UI: Error updating token status in treeview for index {idx}: {e}")
             self.after(0, update)  # Schedule the update in the main thread
-        checker = TokenChecker(self.accounts, update_status_in_tree)
+        checker = TokenChecker(self.accounts, update_status_in_tree_inst)
         checker.check_all_tokens()
 
     #Update the selected accounts label
