@@ -1,19 +1,19 @@
 #from doctest import debug
-from codecs import escape_encode
-from curses.ascii import isdigit
-from pydoc import doc
-from re import A
-from struct import pack
+#from codecs import escape_encode
+#from curses.ascii import isdigit
+#from pydoc import doc
+#from re import A
+#from struct import pack
 import tkinter as tk
-from tkinter import N, ttk
-from tkinter import filedialog
-from typing import Text
-from matplotlib.offsetbox import PaddedBox
-from tkcalendar import DateEntry
-from datetime import datetime, timedelta
+from tkinter import ttk
+
+#from typing import Text
+#from matplotlib.offsetbox import PaddedBox
+
+#from datetime import datetime, timedelta
 #from turtle import fill, left, right, width
 
-from numpy import pad
+#from numpy import pad
 from tkinterweb import HtmlFrame
 
 import os # For Logfile saving and path handling
@@ -25,12 +25,8 @@ from utils.tkinter_log_handler import TkinterLogHandler
 
 #UI backends
 from Ui.tiktok_backend import tt_UI_backend
-#from Ui.instagram_backend import
+from Ui.instagram_backend import ig_UI_backend
 #from Ui.settings_backend import
-
-#Thread Matrix Monitor
-from Ui.ThreadMatrix import ThreadMatrix
-import math
 
 #For Account Management and checking
 import json
@@ -66,9 +62,9 @@ class PostAPIApp(tk.Tk):
         
         #Setup cool backends
         self.tiktok_backend = tt_UI_backend(self.controller, self)
+        self.insta_backend = ig_UI_backend(self.controller, self)
         
-        #Setup the cool token checker var
-        self.token_checker_already_run = False
+        #Setup the cool token checker var         #self.token_checker_already_run = False
         
         # Set the icon if it exists
         icon_path = "assets/iconLIN.xbm"
@@ -89,9 +85,6 @@ class PostAPIApp(tk.Tk):
         self.content_frame.pack(side="right", fill="both", expand=True)
 
         self.build_menu()
-
-        # Initialize selected_accounts as an empty list
-        self.selected_accounts = []
 
         # === Startpage ===
         self.show_Menu()
@@ -304,18 +297,18 @@ class PostAPIApp(tk.Tk):
         frame_file.pack(pady=5)
         self.ig_image_entry = tk.Entry(frame_file, textvariable=self.ig_image_path, width=40, state="readonly")
         self.ig_image_entry.pack(side="left", padx=5)
-        tk.Button(frame_file, text="Browse...", command=self.browse_image_file).pack(side="left")
-
+        tk.Button(frame_file, text="Browse...", command=self.insta_backend.browse_image_file).pack(side="left")
+        
         # Caption
         tk.Label(frame_insert, text="Caption:").pack()
         self.ig_caption_entry = tk.Entry(frame_insert, width=50)
         self.ig_caption_entry.pack(pady=5)
 
         # Account Selection
-        tk.Button(frame_insert, text="Select Accounts", command=self.open_account_selection).pack(pady=5)
+        tk.Button(frame_insert, text="Select Accounts", command=self.insta_backend.open_account_selection).pack(pady=5)
 
         # Post-Button, this is a object in self so we can lock it to prevent spam
-        self.post_button = tk.Button(frame_insert, text="Post", command=self.startPostInsta)
+        self.post_button = tk.Button(frame_insert, text="Post", command=self.insta_backend.startPostInsta)
         self.post_button.pack(pady=20)
 
         # Right Side: Account-Table
@@ -336,18 +329,18 @@ class PostAPIApp(tk.Tk):
         # Buttons for Account-management
         btn_frame = tk.Frame(frame_accounts)
         btn_frame.pack(pady=5)
-        tk.Button(btn_frame, text="Add", command=self.add_account).pack(side="left", padx=2)
-        tk.Button(btn_frame, text="Edit", command=self.edit_account).pack(side="left", padx=2)
-        tk.Button(btn_frame, text="Delete", command=self.delete_account).pack(side="left", padx=2)
-        tk.Button(btn_frame, text="Renew Tokens", command=self.renew_tokens).pack(side="left", padx=2)
-        tk.Button(btn_frame, text="Refresh Statuses", command=self.run_token_checker).pack(side="left", padx=2)
+        tk.Button(btn_frame, text="Add", command=self.insta_backend.add_account).pack(side="left", padx=2)
+        tk.Button(btn_frame, text="Edit", command=self.insta_backend.edit_account).pack(side="left", padx=2)
+        tk.Button(btn_frame, text="Delete", command=self.insta_backend.delete_account).pack(side="left", padx=2)
+        tk.Button(btn_frame, text="Renew Tokens", command=self.insta_backend.renew_tokens).pack(side="left", padx=2)
+        tk.Button(btn_frame, text="Refresh Statuses", command=self.insta_backend.run_token_checker).pack(side="left", padx=2)
 
         # Load Accounts into table
-        self.load_accounts()
+        self.insta_backend.load_accounts()
         
         #Run the token checker but only once
-        if not self.token_checker_already_run:
-            self.run_token_checker()
+        if not self.insta_backend.token_checker_already_run:
+            self.insta_backend.run_token_checker()
             self.token_checker_already_run = True
 
         #List for Selcted Accounts
@@ -355,7 +348,7 @@ class PostAPIApp(tk.Tk):
         self.selected_accounts_var = tk.StringVar()
         self.selected_accounts_label = tk.Label(frame_accounts, textvariable=self.selected_accounts_var, fg="blue", anchor="w", justify="left")
         self.selected_accounts_label.pack(fill="x", padx=5)
-        self.update_selected_accounts_label()
+        self.insta_backend.update_selected_accounts_label()
 
         # Debug Message
         logging.info("UI: Opened Instagram Page")
@@ -509,9 +502,17 @@ class PostAPIApp(tk.Tk):
         self.build_menu()  # Rebuild the menu to reflect changes
         
         #Debug Message
-        logging.info("UI: Saved ACM Settings")   
+        logging.info("UI: Saved ACM Settings")  
+        
+    #Exit Func
+    def exit_app(self):
+        logging.info("UI: Exiting Application")
+        # Save log history before exiting
+        TkinterLogHandler.save_log_history()
+        self.quit()
     
-    #File Selection
+    
+'''    #File Selection
     def browse_image_file(self):
         media_type = self.media_type.get() if hasattr(self, "media_type") else "image"
         if media_type == "image":
@@ -896,10 +897,5 @@ class PostAPIApp(tk.Tk):
         rows = math.ceil(num_threads ** 0.5)
         cols = math.ceil(num_threads / rows)
         self.matrix_window = ThreadMatrix(self, self.controller.PGC, rows=rows, cols=cols)
-
-    #Exit Func
-    def exit_app(self):
-        logging.info("UI: Exiting Application")
-        # Save log history before exiting
-        TkinterLogHandler.save_log_history()
-        self.quit()
+'''
+    
