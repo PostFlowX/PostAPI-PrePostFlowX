@@ -3,6 +3,7 @@ from codecs import escape_encode
 from curses.ascii import isdigit
 from pydoc import doc
 from re import A
+from struct import pack
 import tkinter as tk
 from tkinter import N, ttk
 from tkinter import filedialog
@@ -21,6 +22,11 @@ import threading # for some toplayer windows like the debug window
 #For Logging
 import logging
 from utils.tkinter_log_handler import TkinterLogHandler
+
+#UI backends
+from Ui.tiktok_backend import tt_UI_backend
+#from Ui.instagram_backend import
+#from Ui.settings_backend import
 
 #Thread Matrix Monitor
 from Ui.ThreadMatrix import ThreadMatrix
@@ -57,6 +63,9 @@ class PostAPIApp(tk.Tk):
         else:
             logging.error("UI: No valid Controller or env_handler passed!")
             raise ValueError("No valid Controller or env_handler passed!")
+        
+        #Setup cool backends
+        self.tiktok_backend = tt_UI_backend(self.controller, self)
         
         #Setup the cool token checker var
         self.token_checker_already_run = False
@@ -196,6 +205,7 @@ class PostAPIApp(tk.Tk):
         #Switch Back to settings.env
         self.controller.env_handler.load(".env_program/settings.env")
         acm_instagram_path = self.controller.env_handler.get("ACM_INSTA_PATH", "")
+        acm_tiktok_path = self.controller.env_handler.get("ACM_TIKTOK_PATH", "")
         debug_mode = self.controller.env_handler.get("DEBUG_MODE", "")
 
         #Clear content and show settings
@@ -250,9 +260,15 @@ class PostAPIApp(tk.Tk):
         frame_acm.pack(pady=5)
 
         tk.Label(frame_acm, text="Account Management Settings:", font=("Arial", 14)).pack()
-        self.acm_instagram = tk.Entry(frame_acm, width=50)
+        tk.Label(frame_acm, text="Instagram:").pack()
+        self.acm_instagram = tk.Entry(frame_acm, width=30)
         self.acm_instagram.insert(0, acm_instagram_path)
-        self.acm_instagram.pack(pady=5)
+        self.acm_instagram.pack(pady=5, fill="x", expand=True)
+        
+        tk.Label(frame_acm, text="Tiktok:").pack()
+        self.acm_tiktok = tk.Entry(frame_acm, width=30)
+        self.acm_tiktok.insert(0, acm_tiktok_path)
+        self.acm_tiktok.pack(pady=5, fill="x", expand=True)
 
         tk.Button(frame_acm, text="Save ACM Settings", command=self.save_settings_acm).pack(pady=10)
 
@@ -370,6 +386,14 @@ class PostAPIApp(tk.Tk):
         self.account_tree_tt.heading("Token", text="Access Token")
         self.account_tree_tt.pack(pady=5)
         
+        #Button frame under treeview inside accounts frame
+        btn_frame = tk.Frame(frame_accounts)
+        btn_frame.pack(pady=5)
+        tk.Button(btn_frame, text="Add", command=self.tiktok_backend.add_account).pack(side="left", padx=2)
+        
+        #Load accounts into table
+        self.tiktok_backend.load_accounts()
+        
         #Debug Message
         logging.info("UI: Opened TikTok Page (WIP)")
 
@@ -432,16 +456,6 @@ class PostAPIApp(tk.Tk):
             # Starte das Laden in einem separaten Thread
             thread = threading.Thread(target=load_log_into_thread, daemon=True)
             thread.start()
-            
-            '''
-            debug_text.delete("1.0", "end")
-            for msg in TkinterLogHandler.log_history:
-                debug_text.insert("end", msg + "\n")
-            debug_text.config(state="disabled")
-            
-            if self.debug_handler is not None:
-                self.debug_handler.set_widget(debug_text)
-            '''
         tk.Button(self.content_frame, text="Open Debug-Console in extra window", command=open_debug_window).pack(pady=10)
 
         logging.info("UI: Opened Debug Console")
@@ -487,8 +501,10 @@ class PostAPIApp(tk.Tk):
         for widget in self.frame_message.winfo_children():
             widget.destroy()        
         acm_instagram_path = self.acm_instagram.get() 
+        acm_tiktok_path = self.acm_tiktok.get()
         self.controller.env_handler.load(".env_program/settings.env")  # Ensure the environment is loaded before saving settings
         self.controller.env_handler.setV("ACM_INSTA_PATH", str(acm_instagram_path))  # Save the ACM Instagram file path
+        self.controller.env_handler.setV("ACM_TIKTOK_PATH", str(acm_tiktok_path))
         tk.Label(self.frame_message, text="ACM settings saved successfully.").pack()
         self.build_menu()  # Rebuild the menu to reflect changes
         
