@@ -4,7 +4,7 @@ import logging
 import threading
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from numpy import character
+#from numpy import character
 import requests
 import hashlib
 import random
@@ -299,10 +299,11 @@ class tt_UI_backend:
                 "end",
                 values=(
                     acc.get("username", "Unknown"),
-                    acc.get("IG_ID", "Not Set"),
-                    acc.get("Status", "Not Checked"),
-                    acc.get("expdate", "Not Set"),
-                    acc.get("token", "No Token")
+                    acc.get("acct_expires_at", "Not Set"),
+                    acc.get("rfsh_expires_at", "Not Set"),
+                    acc.get("access_token", "No AC Token"),
+                    acc.get("refresh_token", "No RF Token"),
+                    acc.get("source", "Unknown")
                 )
             )
         logging.info("TT_BE: Loaded Accounts into Tiktok table")            

@@ -1,6 +1,7 @@
 #Tkinter
 import tkinter as tk
 from tkinter import ttk
+from turtle import left
 from tkinterweb import HtmlFrame
 
 import os # For Logfile saving and path handling
@@ -47,7 +48,8 @@ class PostAPIApp(tk.Tk):
         self.tiktok_backend = tt_UI_backend(self.controller, self)
         self.insta_backend = ig_UI_backend(self.controller, self)
         
-        #Setup the cool token checker var         #self.token_checker_already_run = False
+        #Setup the cool token checker var         
+        # #self.token_checker_already_run = False
         
         # Set the icon if it exists
         icon_path = "assets/iconLIN.xbm"
@@ -346,6 +348,12 @@ class PostAPIApp(tk.Tk):
         tk.Label(frame_insert, text="Tiktok Post", font=("Arial", 18)).pack(pady=10)
         
         #All the selections
+        #Media Type
+        self.media_type = tk.StringVar(value="video")
+        frame_media = tk.Frame(frame_insert)
+        tk.Label(frame_media, text="Media type:").pack(side="left")
+        tk.Radiobutton(frame_media, text="Video", variable=self.media_type, value="video").pack(side="left")
+        tk.Radiobutton(frame_media, text="")
         
         #Main Frame(right)
         frame_accounts = tk.Frame(self.content_frame)
@@ -354,12 +362,13 @@ class PostAPIApp(tk.Tk):
         tk.Label(frame_accounts, text="Accounts", font=("Arial", 14)).pack()
         
         #Another account tree
-        self.account_tree_tt = ttk.Treeview(frame_accounts, columns=("Username", "ID?", "Status", "expdate", "Token"), show="headings", height=10)
-        self.account_tree_tt.heading("Username", text="Username")
-        self.account_tree_tt.heading("ID?", text="ID?")
-        self.account_tree_tt.heading("Status", text="Status")
-        self.account_tree_tt.heading("expdate", text="Expires in")
-        self.account_tree_tt.heading("Token", text="Access Token")
+        self.account_tree_tt = ttk.Treeview(frame_accounts, columns=("username", "acct_exp", "rfsh_exp", "acct_token", "rfsh_token", "source"), show="headings", height=10)
+        self.account_tree_tt.heading("username", text="Username")
+        self.account_tree_tt.heading("acct_exp", text="AT Expires in")
+        self.account_tree_tt.heading("rfsh_exp", text="RT Expires in")
+        self.account_tree_tt.heading("acct_token", text="Access Token")
+        self.account_tree_tt.heading("rfsh_token", text="Refresh Token")
+        self.account_tree_tt.heading("source", text="Source")
         self.account_tree_tt.pack(pady=5)
         
         #Button frame under treeview inside accounts frame
