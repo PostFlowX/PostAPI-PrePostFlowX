@@ -1,7 +1,8 @@
 #Tkinter
 import tkinter as tk
-from tkinter import ttk
+from tkinter import W, Label, ttk
 from turtle import left
+from typing import ValuesView
 from tkinterweb import HtmlFrame
 
 import os # For Logfile saving and path handling
@@ -268,19 +269,19 @@ class PostAPIApp(tk.Tk):
         tk.Label(frame_insert, text="Instagram Post", font=("Arial", 18)).pack(pady=10)
 
         #Media Type Selection
-        self.media_type = tk.StringVar(value="image")
+        self.ig_media_type = tk.StringVar(value="image")
         frame_media = tk.Frame(frame_insert)
         frame_media.pack(pady=5)
         tk.Label(frame_media, text="Media type:").pack(side="left")
-        tk.Radiobutton(frame_media, text="Picture", variable=self.media_type, value="image").pack(side="left")
-        tk.Radiobutton(frame_media, text="Reel", variable=self.media_type, value="video").pack(side="left")
+        tk.Radiobutton(frame_media, text="Picture", variable=self.ig_media_type, value="image").pack(side="left")
+        tk.Radiobutton(frame_media, text="Reel", variable=self.ig_media_type, value="video").pack(side="left")
 
         # Filepath (Local URL)
         tk.Label(frame_insert, text="Media Filepath:").pack()
-        self.ig_image_path = tk.StringVar()
+        self.ig_media_path = tk.StringVar()
         frame_file = tk.Frame(frame_insert)
         frame_file.pack(pady=5)
-        self.ig_image_entry = tk.Entry(frame_file, textvariable=self.ig_image_path, width=40, state="readonly")
+        self.ig_image_entry = tk.Entry(frame_file, textvariable=self.ig_media_path, width=40, state="readonly")
         self.ig_image_entry.pack(side="left", padx=5)
         tk.Button(frame_file, text="Browse...", command=self.insta_backend.browse_image_file).pack(side="left")
         
@@ -349,11 +350,73 @@ class PostAPIApp(tk.Tk):
         
         #All the selections
         #Media Type
-        self.media_type = tk.StringVar(value="video")
-        frame_media = tk.Frame(frame_insert)
-        tk.Label(frame_media, text="Media type:").pack(side="left")
-        tk.Radiobutton(frame_media, text="Video", variable=self.media_type, value="video").pack(side="left")
-        tk.Radiobutton(frame_media, text="")
+        self.tt_media_type = tk.StringVar(value="video")
+        frame_mediaType = tk.Frame(frame_insert)
+        frame_mediaType.pack(pady=5)
+        tk.Label(frame_mediaType, text="Media type:").pack(side="left")
+        tk.Radiobutton(frame_mediaType, text="Video", command=self.tiktok_backend.update_tt_CapBox, variable=self.tt_media_type, value="video").pack(side="left")
+        tk.Radiobutton(frame_mediaType, text="Photos", command=self.tiktok_backend.update_tt_CapBox, variable=self.tt_media_type, value="photos").pack(side="left")
+        
+        #Upload from URL or Source
+        self.tt_upload_type = tk.StringVar(value="source")
+        frame_uploadType = tk.Frame(frame_insert)
+        frame_uploadType.pack(pady=5)
+        tk.Label(frame_uploadType, text="Media Source:").pack(side="left")
+        tk.Radiobutton(frame_uploadType, command=self.tiktok_backend.update_tt_media_input, text="Local File/s", variable=self.tt_upload_type, value="source").pack(side="left")
+        tk.Radiobutton(frame_uploadType, command=self.tiktok_backend.update_tt_media_input, text="URL", variable=self.tt_upload_type, value="url").pack(side="left")
+        
+        #Box around flexible frames below
+        frame_upload = tk.Frame(frame_insert)
+        frame_upload.pack(pady=5)
+        
+        #Filepath if upload type = local; url if upload type = url
+        self.tt_media_path = tk.StringVar()
+        self.frame_fileFrame = tk.Frame(frame_upload)
+        self.frame_fileFrame.pack(pady=5)
+        self.media_path_entry_source = tk.Entry(self.frame_fileFrame, textvariable=self.tt_media_path, width=40, state="readonly")
+        self.media_path_entry_source.pack(side="left", padx=5)
+        tk.Button(self.frame_fileFrame, text="Browse...", command=self.tiktok_backend.browse_image_file).pack(side="left")
+        
+        #URL Frame
+        self.frame_urlFrame = tk.Frame(frame_upload)
+        self.frame_urlFrame.pack(pady=5)
+        self.media_path_entry_url = tk.Entry(self.frame_urlFrame, textvariable=self.tt_media_path, width=50)
+        self.media_path_entry_url.pack(side="left", padx=5)
+        
+        #Title 
+        self.tt_title = tk.StringVar(value="")
+        frame_title = tk.Frame(frame_insert)
+        frame_title.pack(pady=5)
+        tk.Label(frame_title, text="Title:").pack()
+        self.tt_title_entry = tk.Entry(frame_title, width=50)
+        self.tt_title_entry.pack(pady=5)
+        
+        #Frame acting as box around caption frame
+        frame_CapBox = tk.Frame(frame_insert)
+        frame_CapBox.pack(pady=5)
+        
+        #Caption only if media type is photos
+        self.tt_caption = tk.StringVar(value="")
+        self.frame_caption = tk.Frame(frame_CapBox)
+        self.frame_caption.pack(pady=5)
+        tk.Label(self.frame_caption, text="Caption:").pack()
+        self.tt_caption_entry = tk.Entry(self.frame_caption, textvariable=self.tt_caption, width=50)
+        self.tt_caption_entry.pack(pady=5)
+        
+        #Video Options
+        frame_Options = tk.Frame(frame_insert)
+        frame_Options.pack(pady=5)
+        tk.Label(frame_Options, text="Post Options").pack(pady=5)
+        self.disable_comment = tk.BooleanVar(value=False)
+        self.disable_comment_cb = tk.Checkbutton(frame_Options, text="Disable Comments?", variable= self.disable_comment)
+        self.disable_comment_cb.pack(pady=5)
+        
+        #Account Selection
+        tk.Button(frame_insert, text="Select Accounts", command=self.tiktok_backend.open_acount_selection).pack(pady=5)
+        
+        #Post Button (made it an object in self to lock it)
+        self.tt_post_button = tk.Button(frame_insert, text="Post", command=self.tiktok_backend.startPostTiktok)
+        self.tt_post_button.pack(pady=20)
         
         #Main Frame(right)
         frame_accounts = tk.Frame(self.content_frame)
@@ -362,22 +425,38 @@ class PostAPIApp(tk.Tk):
         tk.Label(frame_accounts, text="Accounts", font=("Arial", 14)).pack()
         
         #Another account tree
-        self.account_tree_tt = ttk.Treeview(frame_accounts, columns=("username", "acct_exp", "rfsh_exp", "acct_token", "rfsh_token", "source"), show="headings", height=10)
+        self.account_tree_tt = ttk.Treeview(frame_accounts, columns=("username", "acct_exp", "rfsh_exp", "acct_token", "rfsh_token", "source", "tType"), show="headings", height=10)
         self.account_tree_tt.heading("username", text="Username")
         self.account_tree_tt.heading("acct_exp", text="AT Expires in")
         self.account_tree_tt.heading("rfsh_exp", text="RT Expires in")
         self.account_tree_tt.heading("acct_token", text="Access Token")
         self.account_tree_tt.heading("rfsh_token", text="Refresh Token")
         self.account_tree_tt.heading("source", text="Source")
+        self.account_tree_tt.heading("tType", text="Token Type")
         self.account_tree_tt.pack(pady=5)
         
         #Button frame under treeview inside accounts frame
         btn_frame = tk.Frame(frame_accounts)
         btn_frame.pack(pady=5)
         tk.Button(btn_frame, text="Add", command=self.tiktok_backend.add_account).pack(side="left", padx=2)
+        tk.Button(btn_frame, text="Edit", command=self.tiktok_backend.edit_account).pack(side="left", padx=2)
+        tk.Button(btn_frame, text="Delete", command=self.tiktok_backend.delete_account).pack(side="left",padx=2)
+        
+        
         
         #Load accounts into table
         self.tiktok_backend.load_accounts()
+        
+        #Selected Accounts List
+        tk.Label(frame_accounts, text="Selected Accounts:", font=("Arial", 12)).pack(pady=5)
+        self.selected_accounts_tt_var = tk.StringVar()
+        self.selected_accounts_tt_label = tk.Label(frame_accounts, textvariable=self.selected_accounts_tt_var, fg="blue", anchor="w", justify="left")
+        self.selected_accounts_tt_label.pack(fill="x", padx=5)
+        self.tiktok_backend.update_selected_accounts_label()
+        
+        #Update UI so frames hide
+        self.tiktok_backend.update_tt_media_input()
+        self.tiktok_backend.update_tt_CapBox()
         
         #Debug Message
         logging.info("UI: Opened TikTok Page (WIP)")

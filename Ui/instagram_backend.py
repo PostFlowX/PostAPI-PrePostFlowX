@@ -23,6 +23,7 @@ class ig_UI_backend:
         self.ui = ui
         self.token_checker_already_run = False
         self.selected_accounts = []
+        self.accounts = []
     
     def startPostInsta(self):
         #Deactivate the post button for spam prevention
@@ -43,7 +44,7 @@ class ig_UI_backend:
         
     #File Selection
     def browse_image_file(self):
-        media_type = self.ui.media_type.get() if hasattr(self, "media_type") else "image"
+        media_type = self.ui.ig_media_type.get() if hasattr(self.ui, "ig_media_type") else "image"
         if media_type == "image":
             filetypes = [("Image files", "*.jpg *.jpeg")]
         elif media_type == "video":
@@ -52,7 +53,7 @@ class ig_UI_backend:
             filetypes = [("All files", "*.*")]
         filename = filedialog.askopenfilename(title="Select File", filetypes=filetypes)
         if filename:
-            self.ui.ig_image_path.set(filename)
+            self.ui.ig_media_path.set(filename)
 
     #Loads the Accounts from the accounts.json file
     def load_accounts(self):
@@ -69,17 +70,17 @@ class ig_UI_backend:
             with open(filepath, "r") as f:
                 try:
                     self.accounts = json.load(f)
-                    logging.info(f"UI: Loaded Instagram accounts from {filepath}")
+                    logging.info(f"IG_BE: Loaded Instagram accounts from {filepath}")
                 except json.JSONDecodeError as e:
-                    logging.error(f"UI: Error loading accounts from {filepath}: {e}")
+                    logging.error(f"IG_BE: Error loading accounts from {filepath}: {e}")
         else:
-            logging.warning(f"UI: Accounts file {filepath} not found. No accounts loaded.")
+            logging.warning(f"IG_BE: Accounts file {filepath} not found. No accounts loaded.")
             # Create Popup to create a new file
             def create_file():
                 with open(filepath, "w") as f:
                     json.dump([], f, indent=4)
                 self.accounts = []
-                logging.info(f"UI: Created new accounts file at {filepath}")
+                logging.info(f"IG_BE: Created new accounts file at {filepath}")
                 popup.destroy()
                 self.load_accounts()  # Load file now
 
@@ -101,7 +102,7 @@ class ig_UI_backend:
         
         #Clear Table
         self.ui.account_tree_inst.delete(*self.ui.account_tree_inst.get_children())
-        logging.info("UI: Cleared Account Table")
+        logging.info("IG_BE: Cleared Account Table")
         
         #Insert loaded accounts from Json file
         for acc in self.accounts:
@@ -116,12 +117,12 @@ class ig_UI_backend:
                     acc.get("token", "No Token")
                 )
             )
-        logging.info("UI: Loaded Accounts into Table")
+        logging.info("IG_BE: Loaded Accounts into Table")
         
     #Runs the checker, should be run 
     def run_token_checker(self):
         #Now lets run the token checker
-        logging.info("UI: Starting TokenChecker for loaded accounts")
+        logging.info("IG_BE: Starting TokenChecker for loaded accounts")
         #callback func
         def update_status_in_tree_inst(idx, is_valid):
             def update():
@@ -133,7 +134,7 @@ class ig_UI_backend:
                         self.ui.account_tree_inst.set(item_id, "Status", symbol) #directly into treeview
                         self.accounts[idx]["Status"] = symbol #also update in list
                 except Exception as e:
-                    logging.error(f"UI: Error updating token status in treeview for index {idx}: {e}")
+                    logging.error(f"IG_BE: Error updating token status in treeview for index {idx}: {e}")
             self.ui.after(0, update)  # Schedule the update in the main thread
         checker = TokenChecker(self.accounts, update_status_in_tree_inst)
         checker.check_all_tokens()
@@ -143,18 +144,18 @@ class ig_UI_backend:
         if not self.selected_accounts:
             self.ui.selected_accounts_var.set("None")
             #Debug Message
-            logging.info("UI: No accounts selected to display into selected_accounts_label")
+            logging.info("IG_BE: No accounts selected to display into selected_accounts_label")
         else:
             names = [acc["username"] for acc in self.selected_accounts]
             self.ui.selected_accounts_var.set(", ".join(names))
             #Debug Message
-            logging.info(f"UI: Updated selected accounts label: {self.ui.selected_accounts_var.get()}")        
+            logging.info(f"IG_BE: Updated selected accounts label: {self.ui.selected_accounts_var.get()}")        
 
     # Opens a new window to select accounts for posting
     def open_account_selection(self):
         # Check if accounts are loaded
         if not self.accounts:
-            logging.error("UI: No accounts to select.")
+            logging.error("IG_BE: No accounts to select.")
             return
         
         # Create a new window for account selection
@@ -162,7 +163,7 @@ class ig_UI_backend:
         win.title("Select Accounts")
         win.geometry("600x500")
 
-        logging.info("UI_TL1: Opened Select Account Window")
+        logging.info("IG_BE_TL1: Opened Select Account Window")
 
         tk.Label(win, text="Select Accounts to Post", font=("Arial", 14)).pack(pady=10)
         # Dictionary for Checkboxes
@@ -180,23 +181,22 @@ class ig_UI_backend:
             ]
             win.destroy()
             self.update_selected_accounts_label()
-            logging.info(f"UI_TL1: Selected accounts for posting: {self.selected_accounts}")
+            logging.info(f"IG_BE_TL1: Selected accounts for posting: {self.selected_accounts}")
 
         #Save Button
         tk.Button(win, text="Save", command=save_selection).pack(pady=20)
 
         #Debug Message
-        logging.info("UI_TL1: Select Accounts Window finished and Accounts Selected")
+        logging.info("IG_BE_TL1: Select Accounts Window finished and Accounts Selected")
 
     #Opens a second window to add an Account to the instagram accounts file
-    #Later we want to add a parameter so we can add tiktok accounts and tokens too
     def add_account(self):
         #Open Window and configure it
         win = tk.Toplevel(self.ui)
         win.title("Add Account")
         win.geometry("600x500")
 
-        logging.info("UI_TL1: Opened Add Account Window")
+        logging.info("IG_BE_TL1: Opened Add Account Window")
 
         tk.Label(win, text="Add Instagram Account", font=("Arial", 14)).pack(pady=10)
         
@@ -240,20 +240,20 @@ class ig_UI_backend:
                 self.load_accounts()
                 win.destroy()
             else:
-                logging.error("UI_TL1: Username or Token is empty or not accepted.")
-                tk.Label(win, text="Please fill in both fields.", fg="red").pack(pady=5)
+                logging.error("IG_BE_TL1: Some entry is empty or not accepted.")
+                tk.Label(win, text="Please fill in all fields.", fg="red").pack(pady=5)
         
         #Save Button
         tk.Button(win, text="Save", command=save).pack(pady=10)
 
         #Debug Message
-        logging.info("UI_TL1: Add Account Window finished and New Account Saved")
+        logging.info("IG_BE_TL1: Add Account Window finished and New Account Saved")
 
     #Opens a second window to edit an Account from the instagram accounts file
     def edit_account(self):
         #Check if There is an Account List
         if not self.accounts:
-            logging.error("UI: No accounts to edit.")
+            logging.error("IG_BE: No accounts to edit.")
             return
         
         #Open New Window and configure it
@@ -261,7 +261,7 @@ class ig_UI_backend:
         win.title("Edit Account")
         win.geometry("600x500")
 
-        logging.info("UI_TL1: Opened Edit Account Window")
+        logging.info("IG_BE_TL1: Opened Edit Account Window")
 
         tk.Label(win, text="Edit Instagram Account", font=("Arial", 14)).pack(pady=10)
 
@@ -303,7 +303,7 @@ class ig_UI_backend:
                 ig_id_entry.insert(0, self.accounts[idx]["IG_ID"])
                 token_entry.insert(0, self.accounts[idx]["token"])
                 date_entry.insert(0, self.accounts[idx]["expdate"])
-            logging.info("UI_TL1: Filled fields with selected account data")
+            logging.info("IG_BE_TL1: Filled fields with selected account data")
         
         combo.bind("<<ComboboxSelected>>", fill_fields)
 
@@ -311,7 +311,7 @@ class ig_UI_backend:
         def save():
             idx = combo.current()
             if idx < 0:
-                logging.error("UI_TL1: No Account Selected")
+                logging.error("IG_BE_TL1: No Account Selected")
                 tk.Label(win, text="Please Select Account", fg="red").pack()
                 return
             new_username = username_entry.get().strip()
@@ -328,19 +328,19 @@ class ig_UI_backend:
                 self.load_accounts()
                 win.destroy()
             else:
-                logging.error("UI_TL1: Username or Token is empty or not accepted.")
+                logging.error("IG_BE_TL1: Username or Token is empty or not accepted.")
                 tk.Label(win, text="Please fill both fields", fg="red").pack()
 
         #Save Button
         tk.Button(win, text="Save", command=save).pack(pady=10)
         
         #Debug Message
-        logging.info("UI_TL1: Add Account Window finished and New Account Saved")
+        logging.info("IG_BE_TL1: Add Account Window finished and New Account Saved")
 
     def delete_account(self):
         #Check if There is an Account List
         if not self.accounts:
-            logging.error("UI: No accounts to delete.")
+            logging.error("IG_BE: No accounts to delete.")
             return
         
         #Open New Window and configure it
@@ -348,7 +348,7 @@ class ig_UI_backend:
         win.title("Delete Account")
         win.geometry("600x500")
 
-        logging.info("UI_TL1: Opened Delete Account Window")
+        logging.info("IG_BE_TL1: Opened Delete Account Window")
 
         tk.Label(win, text="Delete Instagram Account", font=("Arial", 14)).pack(pady=10)
         
@@ -371,27 +371,27 @@ class ig_UI_backend:
                 json.dump(self.accounts, f, indent=4)
             self.load_accounts()
             win.destroy()
-            logging.info(f"UI_TL1: Account '{username}' deleted.")
+            logging.info(f"IG_BE_TL1: Account '{username}' deleted.")
 
         #Delete Button
         tk.Button(win, text="Delete", command=delete_selected, fg="red").pack(pady=10)  
 
         #Debug Message
-        logging.info("UI_TL1: Del Account Window finished and account deleted")
+        logging.info("IG_BE_TL1: Del Account Window finished and account deleted")
 
     def renew_tokens(self):
-        logging.info("UI: Starting TokenChecker for renewing tokens")
+        logging.info("IG_BE: Starting TokenChecker for renewing tokens")
         def message(idx, is_renewed, data):
             #Send log message
             def post():
                 if is_renewed:
-                    logging.info(f"UI: Token of index {idx} is renewed!")
+                    logging.info(f"IG_BE: Token of index {idx} is renewed!")
                 else:
-                    logging.info(f"UI: Token of indes {idx} is not renewed or something went wrong!")
+                    logging.info(f"IG_BE: Token of indes {idx} is not renewed or something went wrong!")
             self.ui.after(0, post)
             
             #Collect data
-            logging.info(f"UI: API response data: Type: {data.get('token_type')}; Expires in: {data.get('expires_in')} seconds; Token: {data.get('access_token')}")
+            logging.info(f"IG_BE: API response data: Type: {data.get('token_type')}; Expires in: {data.get('expires_in')} seconds; Token: {data.get('access_token')}")
             
             #Convert the seconds from data to date
             seconds = data.get("expires_in")
