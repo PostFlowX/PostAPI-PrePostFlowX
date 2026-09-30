@@ -27,7 +27,7 @@ class ig_UI_backend:
     
     def startPostInsta(self):
         #Deactivate the post button for spam prevention
-        self.ui.post_button.config(state="disabled")  # Button deaktivieren
+        self.ui.post_button.config(state="disabled")
         #Strip all the needed data from the UI
         insta_cap = self.ui.ig_caption_entry.get().strip()
         insta_media = self.ui.ig_image_path.get().strip()
@@ -36,7 +36,7 @@ class ig_UI_backend:
         selected_accounts = self.selected_accounts
         
         self.controller.PGC.multipost_instagram(selected_accounts, insta_cap, insta_media, media_type, filepath)
-        # Matrix-Fenster öffnen
+        #Start the matrix window
         num_threads = len(selected_accounts)
         rows = math.ceil(num_threads ** 0.5)
         cols = math.ceil(num_threads / rows)

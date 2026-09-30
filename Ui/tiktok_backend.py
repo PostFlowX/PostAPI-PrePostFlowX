@@ -1,12 +1,9 @@
-from sqlite3 import PARSE_DECLTYPES
 import tkinter as tk
 from tkinter import ttk
 import logging
 import threading
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-#from numpy import character
-from matplotlib import widgets
 import requests
 import hashlib
 import random
@@ -16,15 +13,12 @@ from urllib.parse import parse_qs, urlparse, urlencode
 import json
 import os
 from tkinter import filedialog
-from requests.models import ContentDecodingError
 from tkcalendar import DateEntry
 from datetime import datetime, timedelta
 
-#Temp
-CLIENT_SECRET = "Qqz48I5fgxcBBPcOOHgAwXn0oIHLWlaZ"
-CLIENT_KEY = "sbawd5m0bxhlr0t24v"
-REDIRECT_URI = "http://localhost:3000/auth/callback"
 
+from Ui.ThreadMatrix import ThreadMatrix
+import math
 
 class TTCallbackServer(ThreadingHTTPServer):
     def __init__(self, server_address, handler_cls):
@@ -43,6 +37,13 @@ class tt_UI_backend:
         self.auth_error = None
         self.state = None
         self.httpd = None
+        self.setupSecrets()
+
+    def setupSecrets(self):
+        self.controller.env_handler.load(".env_program/tiktok.env")
+        self.client_key = self.controller.env_handler.get("CLIENT_KEY")
+        self.client_secret = self.controller.env_handler.get("CLIENT_SECRET")
+        self.redirect_uri = self.controller.env_handler.get("REDIRECT_URI")
 
     def update_selected_accounts_label(self):
         if not self.selected_accounts:
@@ -145,9 +146,9 @@ class tt_UI_backend:
         
         tk.Label(content_frame, text="Add TikTok Account", font=("Arial", 14)).pack(pady=10)
         
-        tk.Label(content_frame, text="Username:").pack()
-        username_entry = tk.Entry(content_frame, width=30)
-        username_entry.pack(pady=5, fill="x", expand=True)
+        #tk.Label(content_frame, text="Username:").pack()
+        #username_entry = tk.Entry(content_frame, width=30)
+        #username_entry.pack(pady=5, fill="x", expand=True)
         
         tk.Label(content_frame, text="Please log in in the browser window.", font=("Arial", 11)).pack(pady=10)
 
@@ -155,11 +156,11 @@ class tt_UI_backend:
         
         self.winCache = win
         
-        def saveUsername():
-            self.username = username_entry.get().strip()
-            logging.info("Username saved")
+        #def saveUsername():
+        #    self.username = username_entry.get().strip()
+        #    logging.info("Username saved")
         
-        tk.Button(content_frame, text="Save Username", command=saveUsername).pack()
+        #tk.Button(content_frame, text="Save Username", command=saveUsername).pack()
         tk.Button(win, text="Add Account via Browser", command=self.start_oauth_flow).pack()
         
 
@@ -189,18 +190,18 @@ class tt_UI_backend:
         self.watch_for_auth(winPara)
 
     def build_auth_url(self):
-        client_key =  CLIENT_KEY
-        redirect_uri = REDIRECT_URI
+        #client_key =  CLIENT_KEY
+        #redirect_uri = REDIRECT_URI
         scope = "user.info.basic,video.upload,video.publish"
 
-        if not client_key:
+        if not self.client_key:
             raise ValueError("TikTok Client Key is missing")
 
         logging.info("TT_BE: Started building the auth url")
 
         params = {
-            "client_key": client_key,
-            "redirect_uri": redirect_uri,
+            "client_key": self.client_key,
+            "redirect_uri": self.redirect_uri,
             "response_type": "code",
             "scope": scope,
             "state": self.state,
@@ -210,7 +211,7 @@ class tt_UI_backend:
         return "https://www.tiktok.com/v2/auth/authorize/?" + urlencode(params)
 
     def start_callback_server(self):
-        backend = self
+        #backend = self
         logging.info("TT_BE: Starting callback server")
         class CallbackHandler(BaseHTTPRequestHandler):
             def do_GET(self):
@@ -303,9 +304,9 @@ class tt_UI_backend:
         self.ui.after(300, lambda: self.watch_for_auth(win))
 
     def exchange_code_for_token(self, auth_code):
-        client_key = CLIENT_KEY
-        client_secret =  CLIENT_SECRET
-        redirect_uri = REDIRECT_URI
+        #client_key = CLIENT_KEY
+        #client_secret =  CLIENT_SECRET
+        #redirect_uri = REDIRECT_URI
 
         logging.info("TT_BE: Started exchange!")
 
@@ -315,11 +316,11 @@ class tt_UI_backend:
 
         assert self.code_verifier is not None
         payload = {
-            "client_key": client_key,
-            "client_secret": client_secret,
+            "client_key": self.client_key,
+            "client_secret": self.client_secret,
             "code": auth_code,
             "grant_type": "authorization_code",
-            "redirect_uri": redirect_uri,
+            "redirect_uri": self.redirect_uri,
             "code_verifier": self.code_verifier,
         }
 
@@ -337,17 +338,30 @@ class tt_UI_backend:
         if not access_token:
             raise ValueError("No access token received")
 
-        if not self.username:
-            self.username = "Unkown"
-
+        #here we query a shit ton of info about this account with a the access_token we got (to sell all the data to china ofc) (<-- this was a joke obv) (or was it? -.-)
+        account_info = self.queryCreatorInfo(access_token, token_type)
+        if not account_info:
+            logging.error("TT_BE: Something with the queryCreatorInfo did not work. Setting username and nickname to Unknown...")
+            nickname, username, avatar_url, privacy_level_options, max_video_post_duration_sec = "Unknown"
+        else:
+            username = account_info.get("data", {}).get("creator_username")
+            nickname = account_info.get("data", {}).get("creator_nickname")
+            avatar_url = account_info.get("data", {}).get("creator_avatar_url")
+            max_video_post_duration_sec = account_info.get("data", {}).get("max_video_post_duration_sec")
+            privacy_level_options = account_info.get("data", {}).get("privacy_level_options")
+        
         account = {
-            "username": self.username, 
+            "username": username,
+            "nickname": nickname,
             "access_token": access_token,
             "refresh_token": refresh_token,
             "acct_expires_at": exp_acct,#.isoformat(), 
             "rfsh_expires_at": exp_rfsh,#.isoformat(),
             "source": "oauth",
-            "tType": token_type
+            "tType": token_type,
+            "avatar_url": avatar_url,
+            "max_video_post_duration_sec": max_video_post_duration_sec,
+            "privacy_level_options": privacy_level_options
         }
 
         self.accounts.append(account)
@@ -357,11 +371,13 @@ class tt_UI_backend:
         with open(path, "w") as f:
             logging.info(f"TT_BE: Try Saving {self.accounts} in {path}")
             json.dump(self.accounts, f, indent=4)
+            self.load_accounts()
         
         logging.info("TT_BE: Saved TikTok account")
     
     #Loads Accounts into table on tiktok page
     def load_accounts(self):
+        self.controller.env_handler.load(".env_program/settings.env")
         filepath = self.controller.env_handler.get("ACM_TIKTOK_PATH", "")
         
         if os.path.exists(filepath):
@@ -414,7 +430,39 @@ class tt_UI_backend:
         
     #Here starts the posting mechanism
     def startPostTiktok(self):
-        pass
+        #Deactivate the post button
+        self.ui.tt_post_button.config(state="disabled")
+        #Strip all the needed data from the UI
+        mtype = self.ui.tt_media_type.get()
+        utype = self.ui.tt_upload_type.get()
+        mpath = self.ui.tt_media_path
+        title = self.ui.tt_title
+        caption = self.ui.tt_caption
+        opt_dc = self.ui.disable_comment
+        opt_priv = self.ui.tt_privacy_option
+        selected_accounts = self.selected_accounts
+        
+        #Call the PostGnomeController
+        self.controller.PGC.multipost_tiktok(selected_accounts, mtype, utype, mpath, title, caption, opt_priv, opt_dc)
+
+        #Start up the Matrix Window
+        num_threads = len(selected_accounts)
+        rows = math.ceil(num_threads ** 0.5)
+        cols = math.ceil(num_threads / rows)
+        self.matrix_window = ThreadMatrix(self, self.controller.PGC, rows=rows, cols=cols)
+    
+    def queryCreatorInfo(self, access_token, token_type):
+        #base_url = "https://open.tiktokapis.com/v2/post/publish/creator_info/query/"
+        headers = {
+            "Authorization": f"{token_type} {access_token}",
+            "Content-Type": "application/json; charset=UTF-8"
+        }
+        
+        response = requests.post("https://open.tiktokapis.com/v2/post/publish/creator_info/query/", headers=headers, timeout=30)
+        response.raise_for_status() #Checks http error code if 200 it will pass
+        logging.info(f"TT_BE: Queried Creator Info from account with recieved access_token: {response} ")
+        return response.json()
+        
     
     def edit_account(self):
         #Check if There is an Account List

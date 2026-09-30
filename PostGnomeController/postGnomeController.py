@@ -1,9 +1,9 @@
 #Stop the freeze breeze with threading. Each PostGnome has its own thread
 import threading
-from xmlrpc.client import APPLICATION_ERROR
 
 #import the GNOMESS
 import PostGnomeController.Instagram.instaGnome as instaGnome
+import PostGnomeController.TikTok.tiktokGnome as tiktokGnome
 
 #import env and git handler so we can create one instance for one thread
 from utils.env_handler import EnvHandler
@@ -65,6 +65,46 @@ class postGnomeController:
             t = threading.Thread(
                 target=self.postingGnomeInsta,
                 args=(idx, acc, env_handler, git_handler, cap, media, mtype, location)
+            )
+            t.start()
+            self.threads.append(t)
+            logging.info(f"PGCtr: Started thread {idx} for account {acc}")
+
+    def postingGnomeTikTok(self, number, account, envH, gitH, title, cap, mtype, utype, mpath, opt_priv, opt_dc):
+        self.thread_status[number] = "1" # Set status to running
+        gnome = tiktokGnome.tiktokGnome(number, envH, gitH, self.git_lock) #Give the lock as parameter so every
+        try:
+            gnome.post(account, title, cap, mtype, utype, mpath, opt_priv, opt_dc)
+            self.thread_status[number] = "2" #Status finished after post is done
+        except Exception as e:
+            logging.error(f"PGCtr: Error in thread {number} for account {account}: {e}")
+            self.thread_status[number] = "3" #Status error if an exception occurs
+
+    def multipost_tiktok(self, accounts, mtype, utype, mpath, title, cap, opt_dc):
+        #numerate accs in list and setup new instances of env and git handler for the gnome
+        for idx, acc in enumerate(accounts):
+            env_handler = EnvHandler(".env_program/settings.env")
+            if env_handler is not None:
+                env_handler.load(".env_program/git.env")  # Ensure the environment is loaded before initializing GitHandler
+            else:
+                logging.error("PGCtr: EnvHandler is not initialized before GitHandler!")
+                raise RuntimeError("EnvHandler must be initialized before GitHandler.")
+        
+            git_handler = GitHandler(
+                env_handler.get("GIT_USERNAME"),
+                env_handler.get("GIT_EMAIL"),
+                env_handler.get("REPO_PATH")
+            )
+            self.env_handlers.append(env_handler)
+            self.git_handlers.append(git_handler)
+            
+            #Set thread status
+            self.thread_status[idx] = "0" # waiting
+            
+            #Create and start the thread
+            t = threading.Thread(
+                target=self.postingGnomeInsta,
+                args=(idx, acc, env_handler, git_handler, title, cap, mtype, utype, mpath, opt_dc)
             )
             t.start()
             self.threads.append(t)

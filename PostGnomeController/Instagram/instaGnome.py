@@ -39,12 +39,12 @@ class instaGnome:
             filename = os.path.basename(self.IMAGE_URL_LOCAL)
             
             #Debug Message
-            logging.info("GNOME "+ str(self.id) + f" Loaded Values from git.env - Repo: {repo_path}, User: {git_username}, Email: {git_email}, Filename: {filename}")
+            logging.info("IG_Gnome "+ str(self.id) + f" Loaded Values from git.env - Repo: {repo_path}, User: {git_username}, Email: {git_email}, Filename: {filename}")
             #Branch Selection not added yet
             #branch = "main"  # Default branch, can be changed if needed -> There will be an Option in UI later on
 
             if not repo_path or not git_username or not git_email:
-                logging.error("GNOME "+ str(self.id) + " REPO_PATH, GIT_USERNAME or GIT_EMAIL not found in environment variables.")
+                logging.error("IG_Gnome "+ str(self.id) + " REPO_PATH, GIT_USERNAME or GIT_EMAIL not found in environment variables.")
                 raise ValueError("REPO_PATH, GIT_USERNAME or GIT_EMAIL not found!")
             
             #Create Target Path and copy the image into the repo
@@ -66,7 +66,7 @@ class instaGnome:
             self.git_handler.commit_changes(f"Add image for Instagram post: {filename}")
             self.git_handler.push_changes("main")
 
-            logging.info("GNOME "+ str(self.id) + " Picture moved to Repo and pushed!")
+            logging.info("IG_Gnome "+ str(self.id) + " Picture moved to Repo and pushed!")
 
             #Create and get Rawlink to save
             self.raw_url = self.git_handler.get_raw_url(filename)
@@ -74,21 +74,21 @@ class instaGnome:
 
             #Debug Message
             self.git_handler.dump_git_status()  # Optional: Dump git status for debugging
-            logging.info("GNOME "+ str(self.id) + f" Uploaded Picture to Git, Raw-Link: {self.raw_url}")
+            logging.info("IG_Gnome "+ str(self.id) + f" Uploaded Picture to Git, Raw-Link: {self.raw_url}")
 
     #Creates the Upload Url
     def create_Up_URL(self, media_type):
         #Create Upload Url
         url = f"https://graph.instagram.com/v24.0/{self.ig_id}/media"
         if media_type == "image":
-            logging.info("GNOME "+ str(self.id) + " Creating upload URL for image...")
+            logging.info("IG_Gnome "+ str(self.id) + " Creating upload URL for image...")
             params = {
                 "image_url": self.GIT_URL,
                 "caption": self.CAPTION,
                 "access_token": self.access_token
             }
         elif media_type == "video":
-            logging.info("GNOME "+ str(self.id) + " Creating upload URL for video...")
+            logging.info("IG_Gnome "+ str(self.id) + " Creating upload URL for video...")
             params = {
                 "media_type": "REELS",
                 "share_to_feed": "true",
@@ -97,19 +97,19 @@ class instaGnome:
                 "access_token": self.access_token
             }
         else:
-            logging.error("GNOME "+ str(self.id) + " Invalid media type specified for upload URL creation.")
+            logging.error("IG_Gnome "+ str(self.id) + " Invalid media type specified for upload URL creation.")
             raise ValueError("Invalid media type specified. Must be 'image' or 'video'.")
         
         #Create Response returns the IG_ID
         response = requests.post(url, params=params, timeout=30)
         if response.status_code != 200:
-            logging.error("GNOME "+ str(self.id) + f" Error creating upload URL: {response.text}")
+            logging.error("IG_Gnome "+ str(self.id) + f" Error creating upload URL: {response.text}")
             raise Exception(f"Error creating upload URL: {response.text}")
         
         #Get Data from response json
         container_id = response.json().get("id")
         container_uri = response.json().get("uri")
-        logging.info("GNOME "+ str(self.id) + f" Created upload URL successfully. Media ID: {container_id}, URI: {container_uri}")
+        logging.info("IG_Gnome "+ str(self.id) + f" Created upload URL successfully. Media ID: {container_id}, URI: {container_uri}")
         return container_id, container_uri
     
     #Insert Logging operations here
@@ -119,7 +119,7 @@ class instaGnome:
             "fields": "status_code",
             "access_token": self.access_token
         }
-        logging.info("GNOME "+ str(self.id) + " Waiting for media to be ready...")
+        logging.info("IG_Gnome "+ str(self.id) + " Waiting for media to be ready...")
         #Wait until Finished or timeout
         waited = 0
         while waited < timeout:
@@ -129,7 +129,7 @@ class instaGnome:
             if status == "FINISHED":
                 return True
             elif status == "ERROR":
-                logging.error("GNOME "+ str(self.id) + " Media processing error.")
+                logging.error("IG_Gnome "+ str(self.id) + " Media processing error.")
                 raise Exception("Media processing error.")
             time.sleep(poll_interval)
             waited += poll_interval
@@ -139,7 +139,7 @@ class instaGnome:
         #Prepare Upload and get media ID; media uri not needed for pictures
         container_id, conatiner_uri = self.create_Up_URL("image")
         if not container_id:
-            logging.error("GNOME "+ str(self.id) + " Got no Media-ID, Abortion.")
+            logging.error("IG_Gnome "+ str(self.id) + " Got no Media-ID, Abortion.")
             return False
 
         #Status checkup
@@ -157,17 +157,17 @@ class instaGnome:
         }
         response = requests.post(publish_url, params=params, timeout=30)
         if response.status_code != 200:
-            logging.error("GNOME "+ str(self.id) + f" Error publishing: {response.text}")
+            logging.error("IG_Gnome "+ str(self.id) + f" Error publishing: {response.text}")
             raise Exception(f"Error publishing: {response.text}")
 
-        logging.info("GNOME "+ str(self.id) + f" Post published successfully! (Picture) Response: {response.json()}")
+        logging.info("IG_Gnome "+ str(self.id) + f" Post published successfully! (Picture) Response: {response.json()}")
         return response.json()
     
     def postReelOnInstagram(self):
         #Create Container with create_up_url ## Container_uri only needed for resumable sessions
         container_id, container_uri = self.create_Up_URL("video")
         if not container_id: #CONTAINER_URI ONLY NEEDED FOR RESUMABLE SESSION
-            logging.error("GNOME "+ str(self.id) + " Got no Media-ID or URI, Abortion.")
+            logging.error("IG_Gnome "+ str(self.id) + " Got no Media-ID or URI, Abortion.")
             return False
         
         #Status checkup
@@ -185,17 +185,17 @@ class instaGnome:
         }
         response = requests.post(publish_url, params=params, timeout=30)
         if response.status_code != 200:
-            logging.error("GNOME "+ str(self.id) + f" Error publishing: {response.text}")
+            logging.error("IG_Gnome "+ str(self.id) + f" Error publishing: {response.text}")
             raise Exception(f"Error publishing: {response.text}")
 
-        logging.info("GNOME "+ str(self.id) + f" Reel published successfully! Response: {response.json()}")
+        logging.info("IG_Gnome "+ str(self.id) + f" Reel published successfully! Response: {response.json()}")
         return response.json()
 
     def post(self, account, cap, media, mtype, location):
         #Posting Logic here, with use of account info etc
-        logging.info("GNOME "+ str(self.id) + ": Posting to Instagram account: " + str(account) + " started!")
+        logging.info("IG_Gnome "+ str(self.id) + ": Posting to Instagram account: " + str(account) + " started!")
         
-        logging.info("GNOME "+ str(self.id) + ": Checking posting information...")
+        logging.info("IG_Gnome "+ str(self.id) + ": Checking posting information...")
         
         #Check cap and media
         if not cap or not media:
@@ -209,21 +209,21 @@ class instaGnome:
             if not media.lower().endswith(('.jpg', '.jpeg')):
                 #Fix the same as above with pop-up
                 #tk.Label(self.content_frame, text="Please select a picture that is a .jpg or .jpeg!", fg="red").pack(pady=5)
-                logging.error("GNOME "+ str(self.id) + ": Selected media is not a valid image file.")
+                logging.error("IG_Gnome "+ str(self.id) + ": Selected media is not a valid image file.")
                 return
         elif mtype == "video":
             if not media.lower().endswith((".mp4", ".mov")):
                 #Same as above again with pop-up
                 #tk.Label(self.content_frame, text="Please select a video, that is a .mp4 or .mov!", fg="red").pack(pady=5)
-                logging.error("GNOME "+ str(self.id) + ": Selected media is not a valid video file.")
+                logging.error("IG_Gnome "+ str(self.id) + ": Selected media is not a valid video file.")
                 return
         
         #Check if a valid account was given
         if not account:
-            logging.warning("GNOME "+ str(self.id) + f": No Accounts selected!")
+            logging.warning("IG_Gnome "+ str(self.id) + f": No Accounts selected!")
             return
         
-        logging.info("GNOME "+ str(self.id) + f": Posting information: '{media}' with cap '{cap}' on account '{account["username"]}'. Starting posting process...")
+        logging.info("IG_Gnome "+ str(self.id) + f": Posting information: '{media}' with cap '{cap}' on account '{account["username"]}'. Starting posting process...")
         
         #Actual posting logic here; no posting loop needed because one gnome only posts for one account (in a thread)
         self.setIG_ID(account["IG_ID"])
@@ -235,4 +235,4 @@ class instaGnome:
         elif mtype == "video":
             self.postReelOnInstagram()
             
-        logging.info("GNOME "+ str(self.id) + ": Posting process finished!")
+        logging.info("IG_Gnome "+ str(self.id) + ": Posting process finished!")

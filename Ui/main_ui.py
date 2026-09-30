@@ -1,4 +1,5 @@
 #Tkinter
+from pydoc import text
 import tkinter as tk
 from tkinter import W, Label, ttk
 from turtle import left
@@ -388,7 +389,7 @@ class PostAPIApp(tk.Tk):
         frame_title = tk.Frame(frame_insert)
         frame_title.pack(pady=5)
         tk.Label(frame_title, text="Title:").pack()
-        self.tt_title_entry = tk.Entry(frame_title, width=50)
+        self.tt_title_entry = tk.Entry(frame_title, textvariable=self.tt_title, width=50)
         self.tt_title_entry.pack(pady=5)
         
         #Frame acting as box around caption frame
@@ -410,7 +411,18 @@ class PostAPIApp(tk.Tk):
         self.disable_comment = tk.BooleanVar(value=False)
         self.disable_comment_cb = tk.Checkbutton(frame_Options, text="Disable Comments?", variable= self.disable_comment)
         self.disable_comment_cb.pack(pady=5)
-        
+        #Privacy Option
+        self.tt_privacy_option = tk.StringVar(value="PUBLIC_TO_EVERYONE")
+        frame_privacy = tk.Frame(frame_Options)
+        frame_privacy.pack(fill="both", pady=5)
+        tk.Label(frame_privacy, text="Privacy:").pack(pady=5)
+        self.priv_public = tk.Radiobutton(frame_privacy, text="Public to Everyone", variable=self.tt_privacy_option, value="PUBLIC_TO_EVERYONE")
+        self.priv_mutual = tk.Radiobutton(frame_privacy, text="Mutual Follow Friends", variable=self.tt_privacy_option, value="MUTUAL_FOLLOW_FRIENDS")
+        self.priv_selfonly = tk.Radiobutton(frame_privacy, text="Self Only", variable=self.tt_privacy_option, value="SELF_ONLY")
+        self.priv_public.pack(side="left", pady=5)
+        self.priv_mutual.pack(side="left", pady=5)
+        self.priv_selfonly.pack(side="left", pady=5)
+
         #Account Selection
         tk.Button(frame_insert, text="Select Accounts", command=self.tiktok_backend.open_acount_selection).pack(pady=5)
         
